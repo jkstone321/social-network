@@ -1,15 +1,14 @@
-const { ObjectId } = require("mongoose").Types;
+const express = require("express");
 const { Thought, User } = require("../models");
-const { use } = require("../routes/api");
 
 module.exports = {
-  // Get all students
+  // Get all thoughts
   getThoughts(req, res) {
     Thought.find()
       .then((thought) => res.json(thought))
       .catch((err) => res.status(500).json(err));
   },
-  // Get a single student
+  // Get a single thought
   getSingleThought(req, res) {
     Thought.findOne({ _id: req.params.thoughtId })
       .select("-__v")
@@ -20,7 +19,7 @@ module.exports = {
       )
       .catch((err) => res.status(500).json(err));
   },
-  // create a new student
+  // create a new thought
   createThought(req, res) {
     Thought.create(req.body)
       .then((thought) => {
@@ -32,6 +31,7 @@ module.exports = {
       })
       .catch((err) => res.status(500).json(err));
   },
+  // Edit a thought
   updateThought(req, res) {
     Thought.findOneAndUpdate(
       { _id: req.params.thoughtId },
@@ -45,7 +45,7 @@ module.exports = {
       })
       .catch((err) => res.status(500).json(err));
   },
-  // Delete a student and remove them from the course
+  // Delete a thought and remove thought from user
   deleteThought(req, res) {
     Thought.findOneAndDelete({ _id: req.params.thoughtId })
       .then((thought) => {
@@ -57,5 +57,25 @@ module.exports = {
         });
       })
       .catch((err) => res.status(500).json(err));
+  },
+  //add a reaction
+  addReaction(req, res) {
+    Thought.findOneAndUpdate(
+      { _id: req.params.thoughtId },
+      { $addToSet: { reactions: req.body } },
+      { runValidators: true, new: true }
+    ).then((thought) => {
+      !thought
+        ? res.status(404).json({ message: "No thought found with that id!" })
+        : res.json(thought);
+    });
+  },
+  deleteReaction(req, res) {
+    Thought.findOne({ _id: req.params.thoughtId }).then((thought) => {
+      const index = thought.reactions.indexOf(req.params.reactionId);
+      thought.reactions.splice(index, 1);
+      thought.save();
+      res.json({ message: "Reaction has been deleted!" });
+    });
   },
 };

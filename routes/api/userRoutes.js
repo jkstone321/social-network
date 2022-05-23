@@ -9,6 +9,19 @@ const {
   deleteFriends,
 } = require("../../controllers/userController.js");
 
+/*
+Example JSON for creating a new user:
+{
+  "username": "Lernantino",
+  "email": "lernantino@gmail.com"
+}
+
+{
+  "username": "Frederick",
+  "email": "frederick@gmail.com"
+}
+*/
+
 // /api/users
 router.route("/").get(getUsers).post(createUser);
 

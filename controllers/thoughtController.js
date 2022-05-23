@@ -1,5 +1,6 @@
-const { ObjectId } = require('mongoose').Types;
-const { Student, Course } = require('../models');
+const { ObjectId } = require("mongoose").Types;
+const { Thought, User } = require("../models");
+const { use } = require("../routes/api");
 
 module.exports = {
   // Get all students
@@ -10,45 +11,51 @@ module.exports = {
   },
   // Get a single student
   getSingleThought(req, res) {
-    User.findOne({ _id: req.params.userId })
+    Thought.findOne({ _id: req.params.thoughtId })
       .select("-__v")
-      .populate({ path: "friends", select: "-__v" })
-      .populate({ path: "thoughts", select: "-__v" })
-      .then((user) =>
-        !user
-          ? res.status(404).json({ message: "No user with that ID" })
-          : res.json(user)
+      .then((thought) =>
+        !thought
+          ? res.status(404).json({ message: "No thought with that ID" })
+          : res.json(thought)
       )
       .catch((err) => res.status(500).json(err));
   },
   // create a new student
   createThought(req, res) {
-    Student.create(req.body)
-      .then((student) => res.json(student))
+    Thought.create(req.body)
+      .then((thought) => {
+        User.findOne({ _id: req.body.userId }).then((user) => {
+          user.thoughts.push(thought._id);
+          user.save();
+          res.status(200).json(thought);
+        });
+      })
+      .catch((err) => res.status(500).json(err));
+  },
+  updateThought(req, res) {
+    Thought.findOneAndUpdate(
+      { _id: req.params.thoughtId },
+      { $set: req.body },
+      { runValidators: true, new: true }
+    )
+      .then((thought) => {
+        !thought
+          ? res.status(404).json({ message: "No thought found with this id!" })
+          : res.json(thought);
+      })
       .catch((err) => res.status(500).json(err));
   },
   // Delete a student and remove them from the course
   deleteThought(req, res) {
-    Student.findOneAndRemove({ _id: req.params.studentId })
-      .then((student) =>
-        !student
-          ? res.status(404).json({ message: 'No such student exists' })
-          : Course.findOneAndUpdate(
-              { students: req.params.studentId },
-              { $pull: { students: req.params.studentId } },
-              { new: true }
-            )
-      )
-      .then((course) =>
-        !course
-          ? res.status(404).json({
-              message: 'Student deleted, but no courses found',
-            })
-          : res.json({ message: 'Student successfully deleted' })
-      )
-      .catch((err) => {
-        console.log(err);
-        res.status(500).json(err);
-      });
+    Thought.findOneAndDelete({ _id: req.params.thoughtId })
+      .then((thought) => {
+        User.findOne({ _id: thought.userId }).then((user) => {
+          const index = user.thoughts.indexOf(req.params.thoughtId);
+          user.thoughts.splice(index, 1);
+          user.save();
+          res.json({ message: "Thought has been deleted!" });
+        });
+      })
+      .catch((err) => res.status(500).json(err));
   },
 };
